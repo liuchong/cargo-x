@@ -10,7 +10,7 @@ use toml::de::Error;
 use toml::Value as Toml;
 
 fn exec(sys_cmd: &String) -> () {
-    let mut child = Command::new("bash")
+    let mut child = Command::new("sh")
         .arg("-c")
         .arg(sys_cmd)
         .spawn()
@@ -33,25 +33,18 @@ fn handle(toml: Toml, cmd: &String) -> () {
             }
         }
         _ => {
-            println!("bad toml");
+            eprintln!("bad toml");
         }
     }
-    println!("no such command <{}>", cmd);
+    eprintln!("no such command <{}>", cmd);
 }
 
 fn main() {
     let mut args = env::args();
-    let mut len = 2;
-    if args.nth(0).unwrap() == "cargo" {
-        len += 1;
-    }
-    if args.len() != len {
-        println!("wrong arguments length {}", args.len());
-        exit(1);
-    }
-    let cmd = match args.nth(len - 1) {
+    let cmd = match args.nth(2) {
         Some(s) => s,
         None => {
+            eprintln!("bad argument");
             exit(1);
         }
     };
@@ -64,6 +57,6 @@ fn main() {
     let x_r: Result<Toml, Error> = x_conf.parse();
     match x_r {
         Ok(toml) => handle(toml, &cmd),
-        Err(error) => println!("failed to parse TOML: {}", error),
+        Err(error) => eprintln!("failed to parse TOML: {}", error),
     }
 }
