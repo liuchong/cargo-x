@@ -1,0 +1,14 @@
+# Rust
+/target
+**/*.rs.bk
+
+# Testing x.toml
+/x.toml
+
+# Temporary files
+tmp
+*~
+.*~
+.#*
+.DS_Store
+nohup.out

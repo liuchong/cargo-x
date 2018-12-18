@@ -1,0 +1,15 @@
+[package]
+name = "cargo-x"
+version = "0.1.0"
+authors = ["Liu Chong <mail@liuchong.io>"]
+license = "MIT"
+repository = "https://github.com/liuchong/cargo-x"
+homepage = "https://github.com/liuchong/cargo-x"
+description = """
+A very simple third-party cargo subcommand to execute a custom command.
+"""
+keywords = ["x", "exec", "execute", "cmd", "command"]
+edition = "2018"
+
+[dependencies]
+toml = "0.4"
