@@ -1,6 +1,8 @@
 cargo-x
 =======
 
+[![Build Status](https://api.travis-ci.org/liuchong/cargo-x.svg?branch=master)](https://travis-ci.org/liuchong/cargo-x)
+
 A very simple third-party cargo subcommand to execute a custom command
 
 ## Usage
