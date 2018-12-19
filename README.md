@@ -8,14 +8,24 @@ A very simple third-party cargo subcommand to execute a custom command
 1. install cargo-x
 
 ```
+cargo install cargo-x
+```
+
+or upgrade
+
+```
 cargo install -f cargo-x
 ```
 
-2. write a config file x.toml in "name = detail" format like
+2. write a config file `x.toml` in `"name = detail"` format like
 
 ```
 ls = "ls -ltr"
 ```
+
+or same lines in file `~/.x.toml`,
+
+or in `[package.metadata.x]` section in `Cargo.toml` file.
 
 3. use cargo-x
 
