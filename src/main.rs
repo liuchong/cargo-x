@@ -1,10 +1,10 @@
 #![deny(warnings)]
 
 extern crate dirs;
-extern crate serde_json;
-extern crate toml;
 #[macro_use]
 extern crate serde_derive;
+extern crate serde_json;
+extern crate toml;
 
 mod config;
 mod handle;
@@ -14,14 +14,27 @@ use std::env;
 use std::process::exit;
 
 fn main() {
-    let mut args = env::args();
-    let cmd = match args.nth(2) {
-        Some(s) => s,
-        None => {
-            eprintln!("bad argument");
+    let argv = {
+        // To allow running both as `cargo-x` and `cargo x`
+        let mut args = env::args();
+        let mut argv = Vec::new();
+        argv.push(args.next().unwrap());
+
+        match args.next() {
+            None => {}
+            Some(ref arg) if argv[0].ends_with("cargo-x") && arg == "x" => {}
+            Some(arg) => argv.push(arg),
+        }
+
+        argv.extend(args);
+
+        if argv.len() == 2 {
+            argv
+        } else {
+            eprintln!("wrong arguments length");
             exit(1);
         }
     };
 
-    handle::run(&cmd);
+    handle::run(&argv[1]);
 }

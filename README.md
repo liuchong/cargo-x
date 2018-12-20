@@ -33,6 +33,8 @@ or in `[package.metadata.x]` section in `Cargo.toml` file.
 
 ```
 cargo x ls
+# or
+cargo-x ls
 ```
 
 ## License

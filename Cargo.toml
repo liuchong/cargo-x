@@ -1,6 +1,6 @@
 [package]
 name = "cargo-x"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Liu Chong <mail@liuchong.io>"]
 license = "MIT"
 repository = "https://github.com/liuchong/cargo-x"
@@ -10,6 +10,10 @@ A very simple third-party cargo subcommand to execute a custom command.
 """
 keywords = ["x", "exec", "execute", "cmd", "command"]
 edition = "2018"
+
+[package.metadata.x]
+lint = "cargo clippy --verbose --all-targets --all-features -- -D warnings"
+build = "cargo test --verbose --all --release && cargo build --verbose --all --release"
 
 [dependencies]
 dirs = "1.0"

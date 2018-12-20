@@ -31,10 +31,12 @@ fn dotx() -> Xconf {
     let mut conf_string = String::new();
     File::open(&path)
         .and_then(|mut f| f.read_to_string(&mut conf_string))
-        .expect(&format!("failed to read {}", path.to_string_lossy()));
+        .unwrap_or_else(|_| {
+            panic!("failed to read {}", path.to_string_lossy())
+        });
 
     toml::from_str(&conf_string)
-        .expect(&format!("{} parsing failed", path.to_string_lossy()))
+        .unwrap_or_else(|_| panic!("{} parsing failed", path.to_string_lossy()))
 }
 
 fn x() -> Xconf {
@@ -49,10 +51,12 @@ fn x() -> Xconf {
     let mut conf_string = String::new();
     File::open(&path)
         .and_then(|mut f| f.read_to_string(&mut conf_string))
-        .expect(&format!("failed to read {}", path.to_string_lossy()));
+        .unwrap_or_else(|_| {
+            panic!("failed to read {}", path.to_string_lossy())
+        });
 
     toml::from_str(&conf_string)
-        .expect(&format!("{} parsing failed", path.to_string_lossy()))
+        .unwrap_or_else(|_| panic!("{} parsing failed", path.to_string_lossy()))
 }
 
 fn cargo() -> Xconf {
@@ -67,10 +71,14 @@ fn cargo() -> Xconf {
     let mut conf_string = String::new();
     File::open(&path)
         .and_then(|mut f| f.read_to_string(&mut conf_string))
-        .expect(&format!("failed to read {}", path.to_string_lossy()));
+        .unwrap_or_else(|_| {
+            panic!("failed to read {}", path.to_string_lossy())
+        });
 
-    let cargo_toml: Cargo = toml::from_str(&conf_string)
-        .expect(&format!("{} parsing failed", path.to_string_lossy()));
+    let cargo_toml: Cargo = toml::from_str(&conf_string).unwrap_or_else(|_| {
+        panic!("{} parsing failed", path.to_string_lossy())
+    });
+
     cargo_toml.package.metadata.x
 }
 
