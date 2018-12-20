@@ -11,7 +11,7 @@ fn exec(sys_cmd: &str) {
 }
 
 pub fn run(cmd: &str) {
-    for pair in super::parse::conf().into_iter() {
+    for pair in super::config::get().into_iter() {
         match pair {
             (ref k, ref v) if k == cmd => {
                 exec(v);

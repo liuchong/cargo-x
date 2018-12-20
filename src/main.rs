@@ -1,12 +1,14 @@
-// #![deny(warnings)]
+#![deny(warnings)]
 
 extern crate dirs;
+extern crate serde_json;
 extern crate toml;
 #[macro_use]
 extern crate serde_derive;
 
+mod config;
 mod handle;
-mod parse;
+mod meta;
 
 use std::env;
 use std::process::exit;

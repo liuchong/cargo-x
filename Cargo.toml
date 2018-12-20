@@ -1,6 +1,6 @@
 [package]
 name = "cargo-x"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Liu Chong <mail@liuchong.io>"]
 license = "MIT"
 repository = "https://github.com/liuchong/cargo-x"
@@ -15,4 +15,5 @@ edition = "2018"
 dirs = "1.0"
 serde = "1.0"
 serde_derive = "1.0"
+serde_json = "1.0"
 toml = "0.4"

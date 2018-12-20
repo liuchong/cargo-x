@@ -1,0 +1,9 @@
+max_width = 80
+ideal_width = 80
+tab_spaces = 4
+newline_style = "Unix"
+reorder_imports = true
+format_strings = false
+force_format_strings = false
+wrap_comments = true
+normalise_comments = true
