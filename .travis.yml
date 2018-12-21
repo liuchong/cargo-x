@@ -7,6 +7,9 @@ rust:
   - beta
   - nightly
 
+before_script:
+   - rustup component add clippy || cargo install --git https://github.com/rust-lang/rust-clippy/ --force clippy
+
 script:
   - cargo clippy --verbose --all-targets --all-features -- -D warnings
   - cargo test --verbose --all --release
