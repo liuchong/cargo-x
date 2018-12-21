@@ -8,5 +8,6 @@ rust:
   - nightly
 
 script:
-  - cargo test --release
-  - cargo build --release
+  - cargo clippy --verbose --all-targets --all-features -- -D warnings
+  - cargo test --verbose --all --release
+  - cargo build --verbose --all --release

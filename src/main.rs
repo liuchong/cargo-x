@@ -13,6 +13,20 @@ mod meta;
 use std::env;
 use std::process::exit;
 
+#[cfg(any(unix))]
+mod sys_cfg {
+    pub const MAIN_CMD: &str = "cargo-x";
+    pub const SHELL_CMD: &str = "sh";
+    pub const SHELL_ARG: &str = "-c";
+}
+
+#[cfg(any(windows))]
+mod sys_cfg {
+    pub const MAIN_CMD: &str = "cargo-x.exe";
+    pub const SHELL_CMD: &str = "cmd.exe";
+    pub const SHELL_ARG: &str = "/c";
+}
+
 fn main() {
     let argv = {
         // To allow running both as `cargo-x` and `cargo x`
@@ -22,7 +36,8 @@ fn main() {
 
         match args.next() {
             None => {}
-            Some(ref arg) if argv[0].ends_with("cargo-x") && arg == "x" => {}
+            Some(ref arg)
+                if argv[0].ends_with(sys_cfg::MAIN_CMD) && arg == "x" => {}
             Some(arg) => argv.push(arg),
         }
 
@@ -36,5 +51,8 @@ fn main() {
         }
     };
 
-    handle::run(&argv[1]);
+    match handle::run(&argv[1]) {
+        Some(code) => exit(code),
+        None => exit(1),
+    }
 }
