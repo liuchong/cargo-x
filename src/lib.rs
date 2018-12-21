@@ -27,9 +27,12 @@ mod sys_cfg {
     pub const SHELL_ARG: &str = "/c";
 }
 
-fn main() {
+pub fn start() {
+    // parse and verify configuration files first
+    let x_conf = config::get();
+
+    // To allow running both as `cargo-x` and `cargo x`
     let argv = {
-        // To allow running both as `cargo-x` and `cargo x`
         let mut args = env::args();
         let mut argv = Vec::new();
         argv.push(args.next().unwrap());
@@ -51,7 +54,7 @@ fn main() {
         }
     };
 
-    match handle::run(&argv[1]) {
+    match handle::run(&argv[1], x_conf) {
         Some(code) => exit(code),
         None => exit(1),
     }

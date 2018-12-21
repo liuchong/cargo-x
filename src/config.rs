@@ -18,7 +18,7 @@ struct Metadata {
     x: Xconf,
 }
 
-type Xconf = HashMap<String, String>;
+pub type Xconf = HashMap<String, String>;
 
 fn dotx() -> Xconf {
     let mut path = dirs::home_dir().expect("cannot get home dir");
@@ -32,7 +32,7 @@ fn dotx() -> Xconf {
     File::open(&path)
         .and_then(|mut f| f.read_to_string(&mut conf_string))
         .unwrap_or_else(|_| {
-            panic!("failed to read {}", path.to_string_lossy())
+            panic!("failed to read {}", path.to_string_lossy());
         });
 
     toml::from_str(&conf_string)
@@ -52,7 +52,7 @@ fn x() -> Xconf {
     File::open(&path)
         .and_then(|mut f| f.read_to_string(&mut conf_string))
         .unwrap_or_else(|_| {
-            panic!("failed to read {}", path.to_string_lossy())
+            panic!("failed to read {}", path.to_string_lossy());
         });
 
     toml::from_str(&conf_string)
@@ -72,16 +72,28 @@ fn cargo() -> Xconf {
     File::open(&path)
         .and_then(|mut f| f.read_to_string(&mut conf_string))
         .unwrap_or_else(|_| {
-            panic!("failed to read {}", path.to_string_lossy())
+            panic!("failed to read {}", path.to_string_lossy());
         });
 
     let cargo_toml: Cargo = toml::from_str(&conf_string).unwrap_or_else(|_| {
-        panic!("{} parsing failed", path.to_string_lossy())
+        panic!("{} parsing failed", path.to_string_lossy());
     });
 
     cargo_toml.package.metadata.x
 }
 
 pub fn get() -> Xconf {
-    dotx().into_iter().chain(x()).chain(cargo()).collect()
+    let x_conf: Xconf = dotx().into_iter().chain(x()).chain(cargo()).collect();
+
+    for pair in x_conf.clone().into_iter() {
+        match pair {
+            (ref k, _) if k == "x" => {
+                // avoid problem caused by run `cargo-x x` directly
+                panic!("command key `x` is reserved");
+            }
+            _ => {}
+        }
+    }
+
+    x_conf
 }

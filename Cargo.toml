@@ -1,6 +1,6 @@
 [package]
 name = "cargo-x"
-version = "0.3.0"
+version = "0.3.2"
 authors = ["Liu Chong <mail@liuchong.io>"]
 license = "MIT"
 repository = "https://github.com/liuchong/cargo-x"
@@ -15,6 +15,10 @@ edition = "2018"
 lint = "cargo clippy --verbose --all-targets --all-features -- -D warnings"
 test = "cargo test --verbose --all --release"
 build = "cargo build --verbose --all --release"
+
+[lib]
+name = "cargo_x"
+path = "src/lib.rs"
 
 [dependencies]
 dirs = "1.0"

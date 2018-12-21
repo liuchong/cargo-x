@@ -1,3 +1,4 @@
+use super::config::Xconf;
 use super::sys_cfg::{SHELL_ARG, SHELL_CMD};
 use std::process::{Command, ExitStatus};
 
@@ -11,8 +12,8 @@ fn exec(sys_cmd: &str) -> ExitStatus {
     child.wait().expect("failed to wait")
 }
 
-pub fn run(cmd: &str) -> Option<i32> {
-    for pair in super::config::get().into_iter() {
+pub fn run(cmd: &str, x_conf: Xconf) -> Option<i32> {
+    for pair in x_conf.into_iter() {
         match pair {
             (ref k, ref v) if k == cmd => {
                 return exec(v).code();
