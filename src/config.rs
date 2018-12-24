@@ -41,7 +41,9 @@ fn dotx() -> Xconf {
 
 fn x() -> Xconf {
     let mut path = PathBuf::new();
-    path.push(super::meta::workspace_root());
+    path.push(
+        super::meta::root().unwrap_or_else(|| panic!("cannot find crate root")),
+    );
     path.push("x.toml");
 
     if !Path::new(&path).exists() {
@@ -61,7 +63,9 @@ fn x() -> Xconf {
 
 fn cargo() -> Xconf {
     let mut path = PathBuf::new();
-    path.push(super::meta::workspace_root());
+    path.push(
+        super::meta::root().unwrap_or_else(|| panic!("cannot find crate root")),
+    );
     path.push("Cargo.toml");
 
     if !Path::new(&path).exists() {

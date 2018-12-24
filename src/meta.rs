@@ -1,11 +1,23 @@
+use regex::Regex;
 use std::env;
 use std::process::Command;
 use std::str::from_utf8;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
+pub struct Resolve {
+    pub root: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 /// Parse `cargo metadata` to get workspace_root
 pub struct Metadata {
+    pub workspace_members: Vec<String>,
+    pub resolve: Resolve,
     pub workspace_root: String,
+}
+
+fn re() -> Regex {
+    Regex::new(r".*\(path\+file://(.*)\)").unwrap()
 }
 
 fn metadata() -> Metadata {
@@ -20,6 +32,12 @@ fn metadata() -> Metadata {
     serde_json::from_str(stdout).expect("failed to parse metadata")
 }
 
-pub fn workspace_root() -> String {
-    metadata().workspace_root
+pub fn root() -> Option<String> {
+    match &metadata().resolve.root {
+        Some(r) => match re().captures(r) {
+            Some(cap) => Some(cap[1].to_string()),
+            _ => None,
+        },
+        _ => None,
+    }
 }
