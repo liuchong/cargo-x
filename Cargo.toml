@@ -1,6 +1,6 @@
 [package]
 name = "cargo-x"
-version = "0.3.3"
+version = "0.3.4"
 authors = ["Liu Chong <mail@liuchong.io>"]
 license = "MIT"
 repository = "https://github.com/liuchong/cargo-x"
@@ -20,8 +20,12 @@ build = "cargo build --verbose --all --release"
 name = "cargo_x"
 path = "src/lib.rs"
 
+[profile.release]
+panic = 'abort'
+
 [dependencies]
 dirs = "1.0"
+failure = "0.1"
 regex = "1.1"
 serde = "1.0"
 serde_derive = "1.0"

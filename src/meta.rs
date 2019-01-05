@@ -1,14 +1,15 @@
+use failure::Error;
 use regex::Regex;
 use std::env;
 use std::process::Command;
 use std::str::from_utf8;
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct Resolve {
     pub root: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 /// Parse `cargo metadata` to get workspace_root
 pub struct Metadata {
     pub workspace_members: Vec<String>,
@@ -20,24 +21,26 @@ fn re() -> Regex {
     Regex::new(r".*\(path\+file://(.*)\)").unwrap()
 }
 
-fn metadata() -> Metadata {
+fn metadata() -> Result<Metadata, Error> {
     let cargo = env::var("CARGO").unwrap_or_else(|_| String::from("cargo"));
 
     let mut cmd = Command::new(cargo);
     cmd.arg("metadata");
 
-    let output = cmd.output().expect("failed to run cargo metadata");
-    let stdout = from_utf8(&output.stdout).expect("failed to read stdout");
+    let output = cmd.output()?;
+    let stdout = from_utf8(&output.stdout)?;
 
-    serde_json::from_str(stdout).expect("failed to parse metadata")
+    Ok(serde_json::from_str(stdout)?)
 }
 
-pub fn root() -> Option<String> {
-    match &metadata().resolve.root {
+pub fn root() -> Result<String, Error> {
+    let meta = metadata()?;
+
+    match &meta.resolve.root {
         Some(r) => match re().captures(r) {
-            Some(cap) => Some(cap[1].to_string()),
-            _ => None,
+            Some(cap) => Ok(cap[1].to_string()),
+            _ => Err(format_err!("Bad root format")),
         },
-        _ => None,
+        _ => Err(format_err!("No root")),
     }
 }

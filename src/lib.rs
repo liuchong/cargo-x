@@ -1,6 +1,8 @@
 #![deny(warnings)]
 
 extern crate dirs;
+#[macro_use]
+extern crate failure;
 extern crate regex;
 #[macro_use]
 extern crate serde_derive;
@@ -11,6 +13,7 @@ mod config;
 mod handle;
 mod meta;
 
+use failure::Error;
 use std::env;
 use std::process::exit;
 
@@ -28,7 +31,7 @@ mod sys_cfg {
     pub const SHELL_ARG: &str = "/c";
 }
 
-pub fn start() {
+pub fn start() -> Result<(), Error> {
     // parse and verify configuration files first
     let x_conf = config::get();
 
@@ -55,7 +58,7 @@ pub fn start() {
         }
     };
 
-    match handle::run(&argv[1], x_conf) {
+    match handle::run(&argv[1], x_conf?) {
         Some(code) => exit(code),
         None => exit(1),
     }
