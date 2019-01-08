@@ -11,12 +11,12 @@ struct Cargo {
 
 #[derive(Deserialize)]
 struct Package {
-    metadata: Metadata,
+    metadata: Option<Metadata>,
 }
 
 #[derive(Deserialize)]
 struct Metadata {
-    x: Xconf,
+    x: Option<Xconf>,
 }
 
 pub type Xconf = HashMap<String, String>;
@@ -71,7 +71,13 @@ fn cargo() -> Result<Xconf, Error> {
 
     let cargo_toml: Cargo = toml::from_str(&conf_string)?;
 
-    Ok(cargo_toml.package.metadata.x)
+    Ok(
+        if let Some(Metadata { x: Some(x) }) = cargo_toml.package.metadata {
+            x
+        } else {
+            HashMap::new()
+        },
+    )
 }
 
 pub fn get() -> Result<Xconf, Error> {
