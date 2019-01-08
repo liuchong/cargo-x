@@ -2,9 +2,6 @@
 /target
 **/*.rs.bk
 
-# Testing x.toml
-/x.toml
-
 # Temporary files
 tmp
 *~
