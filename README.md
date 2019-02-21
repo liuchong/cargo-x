@@ -2,6 +2,10 @@ cargo-x
 =======
 
 [![Build Status](https://api.travis-ci.org/liuchong/cargo-x.svg?branch=master)](https://travis-ci.org/liuchong/cargo-x)
+[![APACHE licensed](https://img.shields.io/badge/license-apache%202.0-blue.svg)](./LICENSE-APACHE)
+[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE-MIT)
+[![crates.io](https://meritbadge.herokuapp.com/cargo-x)](https://crates.io/crates/cargo-x)
+[![Released API docs](https://docs.rs/cargo-x/badge.svg)](https://docs.rs/cargo-x)
 
 A very simple third-party cargo subcommand to execute a custom command
 
@@ -44,4 +48,11 @@ x ls
 
 ## License
 
-[MIT](LICENSE)
+Licensed under either of these:
+
+ * Apache License Version 2.0 [LICENSE-APACHE](LICENSE-APACHE)
+ * MIT License [LICENSE-MIT](LICENSE-MIT)
+
+### Contributing
+
+Please sign a cla, thanks!
