@@ -1,4 +1,5 @@
-use failure::Error;
+use failure::{format_err, Error};
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;

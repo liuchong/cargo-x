@@ -1,5 +1,6 @@
-use failure::Error;
+use failure::{format_err, Error};
 use regex::Regex;
+use serde::Deserialize;
 use std::env;
 use std::process::Command;
 use std::str::from_utf8;

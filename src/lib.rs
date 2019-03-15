@@ -1,14 +1,5 @@
 #![deny(warnings)]
 
-extern crate dirs;
-#[macro_use]
-extern crate failure;
-extern crate regex;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
-extern crate toml;
-
 mod config;
 mod handle;
 mod meta;
