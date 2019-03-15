@@ -33,7 +33,7 @@ mod sys_cfg {
 
 pub fn start() -> Result<(), Error> {
     // parse and verify configuration files first
-    let x_conf = config::get();
+    let x_conf = config::get()?;
 
     // To allow running both as `cargo-x` and `cargo x`
     let argv = {
@@ -58,7 +58,7 @@ pub fn start() -> Result<(), Error> {
         }
     };
 
-    match handle::run(&argv[1], x_conf?) {
+    match handle::run(&argv[1], x_conf) {
         Some(code) => exit(code),
         None => exit(1),
     }

@@ -1,8 +1,8 @@
 [package]
 name = "cargo-x"
-version = "0.3.5"
+version = "0.3.6"
 authors = ["Liu Chong <mail@liuchong.io>"]
-license = "MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/liuchong/cargo-x"
 homepage = "https://github.com/liuchong/cargo-x"
 description = """
@@ -12,9 +12,9 @@ keywords = ["x", "exec", "execute", "cmd", "command"]
 edition = "2018"
 
 [package.metadata.x]
-lint = "cargo clippy --verbose --all-targets --all-features -- -D warnings"
-test = "cargo test --verbose --all --release"
-build = "cargo build --verbose --all --release"
+lint = "cargo clippy --verbose --all-targets --all-features --all --release -- -D warnings"
+test = "cargo test --verbose --all-targets --all-features --all --release"
+build = "cargo build --verbose --all-targets --all-features --all --release"
 
 [lib]
 name = "cargo_x"

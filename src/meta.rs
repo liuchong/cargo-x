@@ -26,11 +26,18 @@ fn metadata() -> Result<Metadata, Error> {
 
     let mut cmd = Command::new(cargo);
     cmd.arg("metadata");
-
     let output = cmd.output()?;
-    let stdout = from_utf8(&output.stdout)?;
 
-    Ok(serde_json::from_str(stdout)?)
+    let stdout = from_utf8(&output.stdout)?.trim_end();
+    if stdout == "" {
+        let stderr = from_utf8(&output.stderr)?.trim_end();
+        return Err(format_err!("{}", stderr));
+    }
+
+    match serde_json::from_str(stdout) {
+        Ok(meta) => Ok(meta),
+        Err(e) => Err(format_err!("Bad metadata format: {}", e)),
+    }
 }
 
 pub fn root() -> Result<String, Error> {
