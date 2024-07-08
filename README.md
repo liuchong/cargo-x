@@ -4,7 +4,7 @@ cargo-x
 [![Build Status](https://github.com/liuchong/cargo-x/actions/workflows/rust.yml/badge.svg)](https://github.com/liuchong/cargo-x/actions/workflows/rust.yml)
 [![APACHE licensed](https://img.shields.io/badge/license-apache%202.0-blue.svg)](./LICENSE-APACHE)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE-MIT)
-[![crates.io](https://meritbadge.herokuapp.com/cargo-x)](https://crates.io/crates/cargo-x)
+[![crates.io](https://img.shields.io/crates/v/cargo-x.svg)](https://crates.io/crates/cargo-x)
 [![Released API docs](https://docs.rs/cargo-x/badge.svg)](https://docs.rs/cargo-x)
 
 A very simple third-party cargo subcommand to execute a custom command
