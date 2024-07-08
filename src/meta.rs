@@ -13,9 +13,9 @@ pub struct Resolve {
 #[derive(Deserialize)]
 /// Parse `cargo metadata` to get workspace_root
 pub struct Metadata {
-    pub workspace_members: Vec<String>,
+    // pub workspace_members: Vec<String>,
     pub resolve: Resolve,
-    pub workspace_root: String,
+    // pub workspace_root: String,
 }
 
 fn re() -> Regex {
