@@ -9,12 +9,12 @@ description = """
 A very simple third-party cargo subcommand to execute a custom command.
 """
 keywords = ["x", "exec", "execute", "cmd", "command"]
-edition = "2018"
+edition = "2021"
 
 [package.metadata.x]
-lint = "cargo clippy --verbose --all-targets --all-features --all --release -- -D warnings"
-test = "cargo test --verbose --all-targets --all-features --all --release"
-build = "cargo build --verbose --all-targets --all-features --all --release"
+lint = "cargo clippy --verbose --workspace --all-targets --all-features --release -- -D warnings"
+test = "cargo test --verbose --workspace --all-targets --all-features --release"
+build = "cargo build --verbose --workspace --all-targets --all-features --release"
 
 [lib]
 name = "cargo_x"
@@ -24,9 +24,7 @@ path = "src/lib.rs"
 panic = 'abort'
 
 [dependencies]
-dirs = "1.0"
-failure = { version = "0.1", features = ["derive"] }
-regex = "1.1"
+anyhow = "1.0"
+dirs = "6.0"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-toml = "0.4"
+toml = "1.0"

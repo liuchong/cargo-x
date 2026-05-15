@@ -1,5 +1,4 @@
-cargo-x
-=======
+# cargo-x
 
 [![Build Status](https://github.com/liuchong/cargo-x/actions/workflows/rust.yml/badge.svg)](https://github.com/liuchong/cargo-x/actions/workflows/rust.yml)
 [![APACHE licensed](https://img.shields.io/badge/license-apache%202.0-blue.svg)](./LICENSE-APACHE)
@@ -11,34 +10,37 @@ A very simple third-party cargo subcommand to execute a custom command
 
 ## Usage
 
-1. install cargo-x
+Install cargo-x:
 
-```
+```sh
 cargo install cargo-x
 ```
 
-or upgrade
+Upgrade an existing install:
 
-```
+```sh
 cargo install -f cargo-x
 ```
 
-2. write a config file `x.toml` in `"name = detail"` format like
+Add commands in `x.toml`:
 
-```
+```toml
 ls = "ls -ltr"
+test = "cargo test --workspace --all-targets"
 ```
 
-or same lines in file `~/.x.toml`,
+You can define commands in these places. Later files override earlier ones
+when the same command key is used:
 
-or in `[package.metadata.x]` section in `Cargo.toml` file.
+1. `~/.x.toml`
+2. `x.toml` next to the current package `Cargo.toml`
+3. `[package.metadata.x]` in the current package `Cargo.toml`
 
-***note*** that `DO NOT` use key x like `x = "any command"`, `cargo-x x` will run into problem,
-because it does not know if it is using `cargo-x x` or `cargo x`.
+The key `x` is reserved. Do not configure `x = "any command"`.
 
-3. use cargo-x
+Run a configured command:
 
-```
+```sh
 cargo x ls
 # or
 cargo-x ls
@@ -50,9 +52,9 @@ x ls
 
 Licensed under either of these:
 
- * Apache License Version 2.0 [LICENSE-APACHE](LICENSE-APACHE)
- * MIT License [LICENSE-MIT](LICENSE-MIT)
+* Apache License Version 2.0 [LICENSE-APACHE](LICENSE-APACHE)
+* MIT License [LICENSE-MIT](LICENSE-MIT)
 
-### Contributing
+## Contributing
 
 Please sign a cla, thanks!

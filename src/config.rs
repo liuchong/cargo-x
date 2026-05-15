@@ -1,13 +1,12 @@
-use failure::{format_err, Error};
+use anyhow::{bail, Context, Result};
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::prelude::*;
-use std::path::{Path, PathBuf};
+use std::fs;
+use std::path::Path;
 
 #[derive(Deserialize)]
 struct Cargo {
-    package: Package,
+    package: Option<Package>,
 }
 
 #[derive(Deserialize)]
@@ -22,78 +21,125 @@ struct Metadata {
 
 pub type Xconf = HashMap<String, String>;
 
-fn dotx() -> Result<Xconf, Error> {
-    let mut path = match dirs::home_dir() {
-        Some(p) => p,
-        _ => return Err(format_err!("cannot get home dir")),
+fn read_file(path: &Path) -> Result<String> {
+    fs::read_to_string(path)
+        .with_context(|| format!("failed to read {}", path.display()))
+}
+
+fn parse_xconf(path: &Path) -> Result<Xconf> {
+    if !path.exists() {
+        return Ok(HashMap::new());
+    }
+
+    toml::from_str(&read_file(path)?)
+        .with_context(|| format!("failed to parse {}", path.display()))
+}
+
+fn dotx(home_dir: Option<&Path>) -> Result<Xconf> {
+    let Some(home_dir) = home_dir else {
+        return Ok(HashMap::new());
     };
-    path.push(".x.toml");
 
-    if !Path::new(&path).exists() {
+    parse_xconf(&home_dir.join(".x.toml"))
+}
+
+fn x(root: &Path) -> Result<Xconf> {
+    parse_xconf(&root.join("x.toml"))
+}
+
+fn cargo(root: &Path) -> Result<Xconf> {
+    let path = root.join("Cargo.toml");
+    if !path.exists() {
         return Ok(HashMap::new());
     }
 
-    let mut conf_string = String::new();
-    File::open(&path).and_then(|mut f| f.read_to_string(&mut conf_string))?;
+    let cargo_toml: Cargo = toml::from_str(&read_file(&path)?)
+        .with_context(|| format!("failed to parse {}", path.display()))?;
 
-    let xconf: Xconf = toml::from_str(&conf_string)?;
-
-    Ok(xconf)
+    Ok(cargo_toml
+        .package
+        .and_then(|package| package.metadata)
+        .and_then(|metadata| metadata.x)
+        .unwrap_or_default())
 }
 
-fn x() -> Result<Xconf, Error> {
-    let mut path = PathBuf::new();
-    path.push(super::meta::root()?);
-    path.push("x.toml");
+fn get_from(home_dir: Option<&Path>, root: Option<&Path>) -> Result<Xconf> {
+    let mut x_conf = dotx(home_dir)?;
 
-    if !Path::new(&path).exists() {
-        return Ok(HashMap::new());
+    if let Some(root) = root {
+        x_conf.extend(x(root)?);
+        x_conf.extend(cargo(root)?);
     }
 
-    let mut conf_string = String::new();
-    File::open(&path).and_then(|mut f| f.read_to_string(&mut conf_string))?;
-
-    let xconf: Xconf = toml::from_str(&conf_string)?;
-
-    Ok(xconf)
-}
-
-fn cargo() -> Result<Xconf, Error> {
-    let mut path = PathBuf::new();
-    path.push(super::meta::root()?);
-    path.push("Cargo.toml");
-
-    if !Path::new(&path).exists() {
-        return Ok(HashMap::new());
-    }
-
-    let mut conf_string = String::new();
-    File::open(&path).and_then(|mut f| f.read_to_string(&mut conf_string))?;
-
-    let cargo_toml: Cargo = toml::from_str(&conf_string)?;
-
-    Ok(
-        if let Some(Metadata { x: Some(x) }) = cargo_toml.package.metadata {
-            x
-        } else {
-            HashMap::new()
-        },
-    )
-}
-
-pub fn get() -> Result<Xconf, Error> {
-    let x_conf: Xconf =
-        dotx()?.into_iter().chain(x()?).chain(cargo()?).collect();
-
-    for pair in x_conf.clone().into_iter() {
-        match pair {
-            (ref k, _) if k == "x" => {
-                // avoid problem caused by run `cargo-x x` directly
-                return Err(format_err!("command key `x` is reserved"));
-            }
-            _ => {}
-        }
+    if x_conf.contains_key("x") {
+        // avoid problem caused by run `cargo-x x` directly
+        bail!("command key `x` is reserved");
     }
 
     Ok(x_conf)
+}
+
+pub fn get() -> Result<Xconf> {
+    let home_dir = dirs::home_dir();
+    let root = super::meta::root()?;
+
+    get_from(home_dir.as_deref(), root.as_deref())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_dir(label: &str) -> std::path::PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        env::temp_dir().join(format!(
+            "cargo-x-test-{}-{label}-{nanos}",
+            std::process::id()
+        ))
+    }
+
+    #[test]
+    fn merges_configs_with_local_precedence() {
+        let home = temp_dir("home");
+        let root = temp_dir("root");
+        fs::create_dir_all(&home).unwrap();
+        fs::create_dir_all(&root).unwrap();
+        fs::write(home.join(".x.toml"), "shared = \"home\"\nhome = \"yes\"\n")
+            .unwrap();
+        fs::write(root.join("x.toml"), "shared = \"local\"\nlocal = \"yes\"\n")
+            .unwrap();
+        fs::write(
+            root.join("Cargo.toml"),
+            "[package]\nname = \"demo\"\nversion = \"0.1.0\"\n\n[package.metadata.x]\nshared = \"cargo\"\ncargo = \"yes\"\n",
+        )
+        .unwrap();
+
+        let conf = get_from(Some(&home), Some(&root)).unwrap();
+
+        assert_eq!(conf.get("shared").map(String::as_str), Some("cargo"));
+        assert_eq!(conf.get("home").map(String::as_str), Some("yes"));
+        assert_eq!(conf.get("local").map(String::as_str), Some("yes"));
+        assert_eq!(conf.get("cargo").map(String::as_str), Some("yes"));
+
+        fs::remove_dir_all(home).unwrap();
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn rejects_reserved_x_command() {
+        let home = temp_dir("reserved");
+        fs::create_dir_all(&home).unwrap();
+        fs::write(home.join(".x.toml"), "x = \"cargo test\"\n").unwrap();
+
+        let err = get_from(Some(&home), None).unwrap_err();
+
+        assert!(err.to_string().contains("command key `x` is reserved"));
+
+        fs::remove_dir_all(home).unwrap();
+    }
 }

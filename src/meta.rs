@@ -1,54 +1,32 @@
-use failure::{format_err, Error};
-use regex::Regex;
-use serde::Deserialize;
+use anyhow::{anyhow, Context, Result};
 use std::env;
+use std::path::PathBuf;
 use std::process::Command;
-use std::str::from_utf8;
 
-#[derive(Deserialize)]
-pub struct Resolve {
-    pub root: Option<String>,
-}
-
-#[derive(Deserialize)]
-/// Parse `cargo metadata` to get workspace_root
-pub struct Metadata {
-    // pub workspace_members: Vec<String>,
-    pub resolve: Resolve,
-    // pub workspace_root: String,
-}
-
-fn re() -> Regex {
-    Regex::new(r".*\(path\+file://(.*)\)").unwrap()
-}
-
-fn metadata() -> Result<Metadata, Error> {
-    let cargo = env::var("CARGO").unwrap_or_else(|_| String::from("cargo"));
+pub fn root() -> Result<Option<PathBuf>> {
+    let cargo = env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
 
     let mut cmd = Command::new(cargo);
-    cmd.arg("metadata");
-    let output = cmd.output()?;
+    cmd.args(["locate-project", "--message-format", "plain"]);
+    let output = cmd.output().context("failed to run cargo locate-project")?;
 
-    let stdout = from_utf8(&output.stdout)?.trim_end();
-    if stdout == "" {
-        let stderr = from_utf8(&output.stderr)?.trim_end();
-        return Err(format_err!("{}", stderr));
+    if !output.status.success() {
+        return Ok(None);
     }
 
-    match serde_json::from_str(stdout) {
-        Ok(meta) => Ok(meta),
-        Err(e) => Err(format_err!("Bad metadata format: {}", e)),
+    let manifest = String::from_utf8(output.stdout)
+        .context("cargo locate-project output was not UTF-8")?;
+    let manifest = manifest.trim();
+    if manifest.is_empty() {
+        return Ok(None);
     }
-}
 
-pub fn root() -> Result<String, Error> {
-    let meta = metadata()?;
-
-    match &meta.resolve.root {
-        Some(r) => match re().captures(r) {
-            Some(cap) => Ok(cap[1].to_string()),
-            _ => Err(format_err!("Bad root format")),
-        },
-        _ => Err(format_err!("No root")),
+    let manifest = PathBuf::from(manifest);
+    match manifest.parent() {
+        Some(root) => Ok(Some(root.to_path_buf())),
+        None => Err(anyhow!(
+            "bad cargo locate-project output: {}",
+            manifest.display()
+        )),
     }
 }
