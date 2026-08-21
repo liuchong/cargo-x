@@ -38,6 +38,9 @@ fn shell_command(cmd: &str, source: &str, base_dir: &Path) -> Command {
         env: BTreeMap::new(),
         cwd: None,
         confirm: false,
+        deps: Vec::new(),
+        cache: false,
+        inputs: None,
         source: source.to_string(),
         base_dir: Some(base_dir.to_path_buf()),
     }

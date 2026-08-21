@@ -28,6 +28,12 @@ pub struct Command {
     /// Working directory, relative to the config file that defined it.
     pub cwd: Option<String>,
     pub confirm: bool,
+    /// Dependencies run in parallel before this command.
+    pub deps: Vec<String>,
+    /// Skip re-running when inputs have not changed.
+    pub cache: bool,
+    /// Files/dirs that fingerprint the cache (default: whole project dir).
+    pub inputs: Option<Vec<String>>,
     /// Human-readable label of where this command was defined.
     pub source: String,
     /// Directory of the config file that defined this command.
@@ -72,6 +78,9 @@ struct RawDetailed {
     env: Option<BTreeMap<String, String>>,
     cwd: Option<String>,
     confirm: Option<bool>,
+    deps: Option<Vec<String>>,
+    cache: Option<bool>,
+    inputs: Option<Vec<String>>,
 }
 
 #[derive(Deserialize)]
@@ -139,6 +148,9 @@ fn parse_table(
                 env: BTreeMap::new(),
                 cwd: None,
                 confirm: false,
+                deps: Vec::new(),
+                cache: false,
+                inputs: None,
                 source: source.to_string(),
                 base_dir: base_dir.clone(),
             },
@@ -152,6 +164,9 @@ fn parse_table(
                     env: BTreeMap::new(),
                     cwd: None,
                     confirm: false,
+                    deps: Vec::new(),
+                    cache: false,
+                    inputs: None,
                     source: source.to_string(),
                     base_dir: base_dir.clone(),
                 }
@@ -175,6 +190,9 @@ fn parse_table(
                     env: d.env.unwrap_or_default(),
                     cwd: d.cwd,
                     confirm: d.confirm.unwrap_or(false),
+                    deps: d.deps.unwrap_or_default(),
+                    cache: d.cache.unwrap_or(false),
+                    inputs: d.inputs,
                     source: source.to_string(),
                     base_dir: base_dir.clone(),
                 }

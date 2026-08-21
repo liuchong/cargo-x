@@ -670,3 +670,148 @@ fn no_auto_disables_detection() {
     assert_eq!(output.status.code(), Some(1));
     assert!(stderr(&output).contains("no such command <test>"));
 }
+
+#[test]
+fn deps_run_in_parallel_and_gate_the_command() {
+    let fixture = Fixture::new("deps-parallel");
+    fixture.write_project_config(&format!(
+        "{}{}{}",
+        command_entry("a", &append_command("out_a.txt", "a")),
+        command_entry("b", &append_command("out_b.txt", "b")),
+        &format!(
+            "[main]\ncmd = {}\ndeps = [\"a\", \"b\"]\n",
+            toml_string(&append_command("out_main.txt", "main")),
+        ),
+    ));
+
+    let output = fixture.cargo_x(&["main"]);
+
+    assert!(output.status.success(), "stderr: {}", stderr(&output));
+    assert!(fixture.project.path().join("out_a.txt").exists());
+    assert!(fixture.project.path().join("out_b.txt").exists());
+    assert!(fixture.project.path().join("out_main.txt").exists());
+}
+
+#[test]
+fn failing_dep_prevents_the_command() {
+    let fixture = Fixture::new("deps-fail");
+    fixture.write_project_config(&format!(
+        "{}{}",
+        command_entry("bad", &exit_command(5)),
+        &format!(
+            "[main]\ncmd = {}\ndeps = [\"bad\"]\n",
+            toml_string(&append_command("out.txt", "main")),
+        ),
+    ));
+
+    let output = fixture.cargo_x(&["main"]);
+
+    assert_eq!(output.status.code(), Some(5));
+    assert!(!fixture.project.path().join("out.txt").exists());
+}
+
+#[test]
+fn dependency_cycle_is_detected() {
+    let fixture = Fixture::new("deps-cycle");
+    fixture.write_project_config(&format!(
+        "{}{}",
+        &format!(
+            "[a]\ncmd = {}\ndeps = [\"b\"]\n",
+            toml_string(&print_command("a")),
+        ),
+        &format!(
+            "[b]\ncmd = {}\ndeps = [\"a\"]\n",
+            toml_string(&print_command("b")),
+        ),
+    ));
+
+    let output = fixture.cargo_x(&["a"]);
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(stderr(&output).contains("dependency cycle"));
+}
+
+#[test]
+fn cached_command_skips_when_inputs_unchanged() {
+    let fixture = Fixture::new("cache");
+    fixture.write_project_config(&format!(
+        "[c]\ncmd = {}\ncache = true\ninputs = [\"src\"]\n",
+        toml_string(&append_command("out.txt", "ran")),
+    ));
+
+    let first = fixture.cargo_x(&["c"]);
+    assert!(first.status.success(), "stderr: {}", stderr(&first));
+
+    let second = fixture.cargo_x(&["c"]);
+    assert!(second.status.success(), "stderr: {}", stderr(&second));
+    assert!(stderr(&second).contains("up to date (cached)"));
+
+    // ran exactly once
+    let out =
+        fs::read_to_string(fixture.project.path().join("out.txt")).unwrap();
+    assert_eq!(out.trim().lines().count(), 1);
+
+    // changing an input busts the cache
+    fs::write(fixture.project.path().join("src/lib.rs"), "// changed\n")
+        .unwrap();
+    let third = fixture.cargo_x(&["c"]);
+    assert!(third.status.success(), "stderr: {}", stderr(&third));
+    let out =
+        fs::read_to_string(fixture.project.path().join("out.txt")).unwrap();
+    assert_eq!(out.trim().lines().count(), 2);
+}
+
+#[test]
+fn failing_command_does_not_populate_cache() {
+    let fixture = Fixture::new("cache-fail");
+    fixture.write_project_config(&format!(
+        "[c]\ncmd = {}\ncache = true\ninputs = [\"src\"]\n",
+        toml_string(&exit_command(4)),
+    ));
+
+    let first = fixture.cargo_x(&["c"]);
+    assert_eq!(first.status.code(), Some(4));
+
+    let second = fixture.cargo_x(&["c"]);
+    assert_eq!(second.status.code(), Some(4));
+    assert!(!stderr(&second).contains("cached"));
+}
+
+#[cfg(unix)]
+#[test]
+fn watch_reruns_on_file_change() {
+    use std::process::Stdio as WatchStdio;
+    use std::thread;
+    use std::time::Duration;
+
+    let fixture = Fixture::new("watch");
+    fixture.write_project_config(&command_entry(
+        "tick",
+        &append_command("out.txt", "tick"),
+    ));
+
+    let mut child = Command::new(env!("CARGO_BIN_EXE_cargo-x"))
+        .args(["-w", "-q", "tick"])
+        .current_dir(fixture.project.path())
+        .env("HOME", fixture.home.path())
+        .env("USERPROFILE", fixture.home.path())
+        .stdin(WatchStdio::null())
+        .stdout(WatchStdio::null())
+        .stderr(WatchStdio::null())
+        .spawn()
+        .unwrap();
+
+    thread::sleep(Duration::from_millis(2000)); // initial run + fingerprint
+    fs::write(fixture.project.path().join("trigger.txt"), "change\n").unwrap();
+    thread::sleep(Duration::from_millis(2500)); // poll + re-run
+
+    let _ = child.kill();
+    let _ = child.wait();
+
+    let out =
+        fs::read_to_string(fixture.project.path().join("out.txt")).unwrap();
+    assert!(
+        out.trim().lines().count() >= 2,
+        "expected at least 2 runs, got: {out}"
+    );
+}

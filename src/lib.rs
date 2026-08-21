@@ -2,6 +2,7 @@
 
 mod config;
 mod detect;
+mod fingerprint;
 mod handle;
 mod meta;
 
@@ -41,6 +42,7 @@ OPTIONS:
     -s, --show <COMMAND>   Show the full definition of a command
     -n, --dry-run          Print the expanded command without running it
     -q, --quiet            Do not echo the command before running it
+    -w, --watch            Re-run the command whenever project files change
         --no-auto          Disable zero-config command detection
         --init             Create an example x.toml in the current directory
         --completions <SH> Print a shell completion script (bash|zsh|fish)
@@ -69,6 +71,9 @@ DETECTION:
                   env = { RUST_LOG = \"debug\" }
                   cwd = \"crates/core\"
                   confirm = true
+                  deps = [\"build\"]        # run in parallel first, gate on success
+                  cache = true            # skip when inputs are unchanged
+                  inputs = [\"src\"]        # cache/watch fingerprint inputs
     Aliases:      [alias]
                   t = \"test\"
 ";
@@ -212,6 +217,7 @@ pub fn start() -> Result<()> {
             }
             "-n" | "--dry-run" => opts.dry_run = true,
             "-q" | "--quiet" => opts.quiet = true,
+            "-w" | "--watch" => opts.watch = true,
             "--no-auto" => auto_detect = false,
             "--" => {
                 if let Some(name) = args.get(i + 1) {

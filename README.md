@@ -105,6 +105,7 @@ x -l, --list               List available commands
 x -s, --show <COMMAND>     Show the full definition of a command
 x -n, --dry-run <COMMAND>  Print the expanded command without running it
 x -q, --quiet <COMMAND>    Do not echo the command before running it
+x -w, --watch <COMMAND>    Re-run the command whenever project files change
 x --no-auto <COMMAND>      Disable zero-config command detection
 x --init                   Create an example x.toml
 x --completions <SHELL>    Print a completion script (bash, zsh, fish)
@@ -130,7 +131,44 @@ desc = "Run all tests"        # shown by `x --list`
 env = { RUST_LOG = "debug" }  # extra environment variables
 cwd = "crates/core"           # relative to the config file
 confirm = true                # ask before running (for dangerous commands)
+deps = ["build"]              # run in parallel first, gate on success
+cache = true                  # skip when inputs have not changed
+inputs = ["src", "Cargo.toml"]  # files/dirs fingerprinted for the cache
 ```
+
+### Parallel dependencies
+
+`deps` lists other commands that run **in parallel** before the command
+itself; a failing dependency stops the run and propagates its exit code.
+Cycles are detected and reported.
+
+```toml
+[check]
+deps = ["lint", "test"]
+cmd = "cargo build --release"
+```
+
+### Watch mode
+
+`x -w test` (or `--watch`) runs the command once, then re-runs it whenever
+a project file changes. `.git`, `target`, `node_modules` and `.x-cache`
+are ignored. Stop with Ctrl-C.
+
+### Incremental cache
+
+With `cache = true`, a successful run records a fingerprint of its inputs
+in `.x-cache/`; later runs are skipped as long as nothing changed:
+
+```text
+$ x test
+==> cargo test --workspace
+$ x test
+`test` is up to date (cached)
+```
+
+`inputs` narrows the fingerprint to specific files or directories
+(default: the whole project directory). Only successful runs populate the
+cache; remember to add `.x-cache/` to your `.gitignore`.
 
 Aliases map one name to another command:
 
@@ -141,7 +179,7 @@ t = "test"
 
 Notes:
 
-- Sequences do not accept extra arguments.
+- Sequences and commands with `deps` do not accept extra arguments.
 - Commands run through the system shell (`sh -c` on Unix, `cmd /c` on
   Windows), so pipes, redirects and `&&` work as usual.
 - The exit status of the underlying command is propagated, so `x ci` works
