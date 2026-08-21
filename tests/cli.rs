@@ -550,3 +550,123 @@ fn home_config_still_works() {
     assert!(output.status.success(), "stderr: {}", stderr(&output));
     assert_eq!(stdout(&output), "from-home");
 }
+
+#[test]
+fn auto_detection_provides_cargo_commands() {
+    let fixture = Fixture::new("auto-cargo");
+
+    let output = fixture.cargo_x(&["-n", "check"]);
+
+    assert!(output.status.success(), "stderr: {}", stderr(&output));
+    assert!(stdout(&output).contains("cargo check"));
+
+    let list = fixture.cargo_x(&["--list"]);
+    assert!(stdout(&list).contains("auto: cargo"));
+}
+
+#[test]
+fn package_json_scripts_are_bridged() {
+    let fixture = Fixture::new("auto-npm");
+    fs::write(
+        fixture.project.path().join("package.json"),
+        r#"{"scripts": {"hello": "echo hi", "dev": "vite"}}"#,
+    )
+    .unwrap();
+
+    let output = fixture.cargo_x(&["-n", "hello"]);
+
+    assert!(output.status.success(), "stderr: {}", stderr(&output));
+    assert!(stdout(&output).contains("npm run hello"));
+
+    let dev = fixture.cargo_x(&["-n", "dev"]);
+    assert!(stdout(&dev).contains("npm run dev"));
+}
+
+#[test]
+fn package_manager_follows_lockfile() {
+    let fixture = Fixture::new("auto-pnpm");
+    fs::write(
+        fixture.project.path().join("package.json"),
+        r#"{"scripts": {"dev": "vite"}}"#,
+    )
+    .unwrap();
+    fs::write(fixture.project.path().join("pnpm-lock.yaml"), "").unwrap();
+
+    let output = fixture.cargo_x(&["-n", "dev"]);
+
+    assert!(stdout(&output).contains("pnpm run dev"));
+}
+
+#[test]
+fn makefile_targets_are_bridged() {
+    let fixture = Fixture::new("auto-make");
+    fs::write(
+        fixture.project.path().join("Makefile"),
+        "hello:\n\techo hi\n\nworld: hello\n\techo world\n",
+    )
+    .unwrap();
+
+    let output = fixture.cargo_x(&["-n", "hello"]);
+
+    assert!(output.status.success(), "stderr: {}", stderr(&output));
+    assert!(stdout(&output).contains("make hello"));
+}
+
+#[test]
+fn justfile_recipes_are_bridged() {
+    let fixture = Fixture::new("auto-just");
+    fs::write(
+        fixture.project.path().join("justfile"),
+        "deploy target:\n    echo {{target}}\n",
+    )
+    .unwrap();
+
+    let output = fixture.cargo_x(&["-n", "deploy"]);
+
+    assert!(output.status.success(), "stderr: {}", stderr(&output));
+    assert!(stdout(&output).contains("just deploy"));
+}
+
+#[test]
+fn taskfile_tasks_are_bridged() {
+    let fixture = Fixture::new("auto-task");
+    fs::write(
+        fixture.project.path().join("Taskfile.yml"),
+        "version: '3'\n\ntasks:\n  build:\n    cmds:\n      - go build ./...\n",
+    )
+    .unwrap();
+
+    let output = fixture.cargo_x(&["--no-auto", "-n", "mk"]);
+
+    // sanity: with detection on, the task is available
+    let on = fixture.cargo_x(&["-n", "build"]);
+    assert!(
+        stdout(&on).contains("task build")
+            || stdout(&on).contains("cargo build")
+    );
+
+    // mk does not exist anywhere
+    assert_eq!(output.status.code(), Some(1));
+}
+
+#[test]
+fn user_config_overrides_detected_commands() {
+    let fixture = Fixture::new("auto-override");
+    fixture
+        .write_project_config(&command_entry("build", &print_command("mine")));
+
+    let output = fixture.cargo_x(&["build"]);
+
+    assert!(output.status.success(), "stderr: {}", stderr(&output));
+    assert_eq!(stdout(&output), "mine");
+}
+
+#[test]
+fn no_auto_disables_detection() {
+    let fixture = Fixture::new("no-auto");
+
+    let output = fixture.cargo_x(&["--no-auto", "-n", "test"]);
+
+    assert_eq!(output.status.code(), Some(1));
+    assert!(stderr(&output).contains("no such command <test>"));
+}

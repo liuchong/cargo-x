@@ -9,6 +9,10 @@
 A lightweight cargo subcommand that runs project-defined commands — a minimal
 task runner living in one TOML file.
 
+It also works with **zero configuration**: inside any project, `x` detects
+what the project is and offers sensible commands automatically (see
+[Zero-config detection](#zero-config-detection)).
+
 ## Usage
 
 Install cargo-x:
@@ -51,12 +55,30 @@ t = "test"
 You can define commands in these places. Later files override earlier ones
 when the same command key is used:
 
+0. auto-detected commands (see below)
 1. `~/.x.toml`
 2. `x.toml` next to the current package `Cargo.toml`
 3. `x.toml` files found walking up from the current directory (nearest wins)
 4. `[package.metadata.x]` in the current package `Cargo.toml`
 
 The keys `x` and `alias` are reserved.
+
+## Zero-config detection
+
+Without any configuration file, `x` inspects the project and provides
+commands automatically:
+
+| Project file            | Commands offered                                            |
+| ----------------------- | ----------------------------------------------------------- |
+| `Cargo.toml`            | `build`, `test`, `check`, `clippy`, `fmt`, `doc`, `run`, `bench`, `release`, `update` |
+| `package.json`          | every script in `"scripts"` (run with npm / pnpm / yarn / bun, chosen by lockfile) |
+| `Makefile`              | every target                                                |
+| `justfile`              | every recipe                                                |
+| `Taskfile.yml`          | every task                                                  |
+
+Detected commands are the lowest-precedence layer: anything you define
+yourself overrides them. List them with `x --list` (source shown as
+`auto: ...`), or turn detection off with `x --no-auto <COMMAND>`.
 
 Run a command:
 
@@ -83,6 +105,7 @@ x -l, --list               List available commands
 x -s, --show <COMMAND>     Show the full definition of a command
 x -n, --dry-run <COMMAND>  Print the expanded command without running it
 x -q, --quiet <COMMAND>    Do not echo the command before running it
+x --no-auto <COMMAND>      Disable zero-config command detection
 x --init                   Create an example x.toml
 x --completions <SHELL>    Print a completion script (bash, zsh, fish)
 x -V, --version            Print the version

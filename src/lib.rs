@@ -1,6 +1,7 @@
 #![deny(warnings)]
 
 mod config;
+mod detect;
 mod handle;
 mod meta;
 
@@ -40,6 +41,7 @@ OPTIONS:
     -s, --show <COMMAND>   Show the full definition of a command
     -n, --dry-run          Print the expanded command without running it
     -q, --quiet            Do not echo the command before running it
+        --no-auto          Disable zero-config command detection
         --init             Create an example x.toml in the current directory
         --completions <SH> Print a shell completion script (bash|zsh|fish)
     -V, --version          Print the version
@@ -47,10 +49,17 @@ OPTIONS:
 
 CONFIG:
     Commands are read from these places; later ones win on key conflicts:
+      0. auto-detected from the project itself (see below)
       1. ~/.x.toml
       2. x.toml next to the current package Cargo.toml
       3. x.toml files found walking up from the current directory
       4. [package.metadata.x] in the current package Cargo.toml
+
+DETECTION:
+    Without any configuration, x still works:
+      - cargo projects get build/test/check/clippy/fmt/doc/run/bench/...
+      - package.json scripts are bridged (npm/pnpm/yarn/bun by lockfile)
+      - Makefile, justfile and Taskfile.yml targets become commands
 
     Simple:       test = \"cargo test --workspace\"
     Sequence:     ci = [\"lint\", \"test\"]
@@ -152,6 +161,7 @@ pub fn start() -> Result<()> {
     let args = &argv[1..];
 
     let mut opts = handle::Opts::default();
+    let mut auto_detect = true;
     let mut cmd_name: Option<String> = None;
     let mut cmd_args: Vec<String> = Vec::new();
 
@@ -176,14 +186,14 @@ pub fn start() -> Result<()> {
                 return Ok(());
             }
             "-l" | "--list" => {
-                let conf = config::get()?;
+                let conf = config::get(auto_detect)?;
                 exit(handle::list(&conf));
             }
             "-s" | "--show" => {
                 let name =
                     args.get(i + 1).context("--show needs a command name")?;
                 let name = name.clone();
-                let conf = config::get()?;
+                let conf = config::get(auto_detect)?;
                 exit(handle::show(&name, &conf));
             }
             "--init" => return init(),
@@ -196,12 +206,13 @@ pub fn start() -> Result<()> {
             }
             "--comp-commands" => {
                 // Hidden flag used by shell completion scripts.
-                let conf = config::get()?;
+                let conf = config::get(auto_detect)?;
                 handle::comp_commands(&conf);
                 return Ok(());
             }
             "-n" | "--dry-run" => opts.dry_run = true,
             "-q" | "--quiet" => opts.quiet = true,
+            "--no-auto" => auto_detect = false,
             "--" => {
                 if let Some(name) = args.get(i + 1) {
                     cmd_name = Some(name.clone());
@@ -222,7 +233,7 @@ pub fn start() -> Result<()> {
         cmd_args.remove(0);
     }
 
-    let conf = config::get()?;
+    let conf = config::get(auto_detect)?;
     match cmd_name {
         None => exit(handle::list(&conf)),
         Some(name) => exit(handle::run(&name, &cmd_args, &conf, &opts)),

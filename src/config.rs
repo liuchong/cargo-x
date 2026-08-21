@@ -8,6 +8,10 @@ use std::path::{Path, PathBuf};
 /// Keys that cannot be used as command or alias names.
 const RESERVED_KEYS: [&str; 2] = ["x", "alias"];
 
+pub(crate) fn is_reserved(key: &str) -> bool {
+    RESERVED_KEYS.contains(&key)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CommandKind {
     /// A single shell command template.
@@ -91,7 +95,7 @@ fn read_file(path: &Path) -> Result<String> {
 }
 
 fn check_reserved(key: &str, source: &str) -> Result<()> {
-    if RESERVED_KEYS.contains(&key) {
+    if is_reserved(key) {
         bail!("command key `{key}` is reserved ({source})");
     }
     Ok(())
@@ -221,6 +225,7 @@ fn load_cargo_metadata(root: &Path, conf: &mut Xconf) -> Result<()> {
 
 /// Merge configs from the home directory and the given project root.
 /// Kept separate from `get` so unit tests do not depend on the cwd.
+#[cfg(test)]
 fn get_from(home_dir: Option<&Path>, root: Option<&Path>) -> Result<Xconf> {
     let mut conf = Xconf::default();
 
@@ -239,24 +244,39 @@ fn get_from(home_dir: Option<&Path>, root: Option<&Path>) -> Result<Xconf> {
 /// Load all configuration sources. Later sources override earlier ones
 /// when the same command key is used:
 ///
+/// 0. auto-detected commands (when `auto_detect` is on)
 /// 1. `~/.x.toml`
 /// 2. `x.toml` next to the current package `Cargo.toml`
 /// 3. `x.toml` files found walking up from the cwd (nearest wins)
 /// 4. `[package.metadata.x]` in the current package `Cargo.toml`
-pub fn get() -> Result<Xconf> {
+pub fn get(auto_detect: bool) -> Result<Xconf> {
     let home_dir = dirs::home_dir();
     let root = super::meta::root()?;
+    let cwd = env::current_dir().ok();
 
-    let mut conf = get_from(home_dir.as_deref(), root.as_deref())?;
+    // Layer 0: zero-config detection
+    let mut conf = match (auto_detect, &cwd) {
+        (true, Some(cwd)) => super::detect::detect(root.as_deref(), cwd),
+        _ => Xconf::default(),
+    };
+
+    if let Some(home_dir) = &home_dir {
+        load_x_file(&home_dir.join(".x.toml"), "~/.x.toml", &mut conf)?;
+    }
+
+    if let Some(root) = &root {
+        let x_path = root.join("x.toml");
+        load_x_file(&x_path, &x_path.display().to_string(), &mut conf)?;
+    }
 
     // Walk up from the cwd, collecting x.toml files below the project root
     // (or all the way up when outside a cargo project). Nearest file wins.
-    if let Ok(cwd) = env::current_dir() {
+    if let Some(cwd) = &cwd {
         let mut chain: Vec<PathBuf> = Vec::new();
         let mut dir = Some(cwd.as_path());
         while let Some(d) = dir {
             if root.as_deref() == Some(d) {
-                break; // root x.toml already loaded by get_from
+                break; // root x.toml already loaded above
             }
             let candidate = d.join("x.toml");
             if candidate.exists() {
@@ -269,8 +289,8 @@ pub fn get() -> Result<Xconf> {
         }
     }
 
-    if let Some(root) = root {
-        load_cargo_metadata(&root, &mut conf)?;
+    if let Some(root) = &root {
+        load_cargo_metadata(root, &mut conf)?;
     }
 
     Ok(conf)
