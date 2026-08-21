@@ -1,12 +1,12 @@
 [package]
 name = "cargo-x"
-version = "0.3.7"
+version = "0.3.8"
 authors = ["Liu Chong <mail@liuchong.dev>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/liuchong/cargo-x"
 homepage = "https://github.com/liuchong/cargo-x"
 description = """
-A very simple third-party cargo subcommand to execute a custom command.
+A lightweight cargo subcommand to run project-defined commands.
 """
 keywords = ["x", "exec", "execute", "cmd", "command"]
 edition = "2021"
@@ -15,6 +15,7 @@ edition = "2021"
 lint = "cargo clippy --verbose --workspace --all-targets --all-features --release -- -D warnings"
 test = "cargo test --verbose --workspace --all-targets --all-features --release"
 build = "cargo build --verbose --workspace --all-targets --all-features --release"
+ci = ["lint", "test", "build"]
 
 [lib]
 name = "cargo_x"
